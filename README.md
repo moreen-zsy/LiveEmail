@@ -38,26 +38,6 @@ bunx tauri build --bundles nsis                  # Windows x64 安装包
 
 安装包输出：`src-tauri/target/release/bundle/nsis/LiveEmail_<version>_x64-setup.exe`。
 
-## 目录
-
-```
-src/                     React 前端（features / components / store / lib）
-src-tauri/src/           Rust 后端（commands / services / db / models）
-src-tauri/migrations 逻辑 在 db/mod.rs（PRAGMA user_version 版本化迁移）
-docs/                    用户手册、发布说明、检查清单
-开发计划/                分批开发计划
-需求文档.md              产品需求与验收标准
-```
-
-## 文档
-
-- [用户手册](./docs/用户手册.md)
-- [发布与自动更新](./docs/发布与自动更新.md)
-- [发布检查清单](./docs/发布检查清单.md)
-- [变更日志](./CHANGELOG.md)
-- [需求文档](./需求文档.md)
-- [技术选型 v2.0](./邮箱客户端-技术选型文档-v2.0.md)
-
 ## 数据与隐私
 
 邮件、附件索引与设置保存在本机 `%APPDATA%\com.liveemail.app`，凭据保存在 Windows 凭据管理器；应用不含遥测与广告，仅在用户主动操作时连接邮箱服务器与更新源。
