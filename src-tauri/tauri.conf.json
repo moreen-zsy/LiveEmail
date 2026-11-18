@@ -26,15 +26,38 @@
       "devCsp": "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420; script-src 'self' 'unsafe-eval'"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFDNzUzOEIyMkFEQThENzAKUldSd2pkb3Fzamgxckl2Slhod3JkQnR3V0prZE1ZNDByWVFrU2pTckw4SHlQdVNEdTFoSUJjaDQK",
+      "endpoints": [
+        "https://github.com/moreen-zsy/LiveEmail/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "LiveEmail",
+    "copyright": "Copyright © 2026 LiveEmail",
+    "shortDescription": "轻量级多账户桌面邮件客户端",
+    "longDescription": "LiveEmail 是一款基于 Tauri 与 Rust 的轻量级桌面邮件客户端，支持 IMAP/SMTP 多账户、统一收件箱、全文搜索、离线缓存与系统通知。",
+    "category": "Productivity",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": false
+      }
+    }
   }
 }

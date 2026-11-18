@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri build output
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Updater signing keys and generated artifacts (never commit private keys)
+*.key
+*.key.pub
+*.sig
+latest.json
+.liveemail/
+
+# Local scratch files
+hello.exe
+hello.ts

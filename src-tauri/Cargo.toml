@@ -18,7 +18,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-store = "2"
@@ -42,13 +42,24 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["net", "time", "io-util", "rt-multi-thread", "macros"] }
 
 # 邮件协议（连接测试用；完整收发在后续批次）
-async-imap = { version = "0.12", features = ["runtime-tokio"] }
+async-imap = { version = "0.12", default-features = false, features = ["runtime-tokio"] }
 
 # TLS 统一走 ring 后端（aws-lc-sys 需要 NASM，本机不可用）
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 webpki-roots = "0.26"
 mail-send = { version = "0.7", default-features = false, features = ["ring", "tls12", "builder"] }
+mail-builder = "2.0"
+mail-parser = { version = "1.0", features = ["full_encoding"] }
+futures-util = "0.3"
+base64 = "0.22"
+
+# OAuth2 令牌接口（统一 rustls-ring，避免引入 aws-lc-sys）
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+urlencoding = "2"
+rand = "0.9"
+sha2 = "0.10"
+tauri-plugin-updater = "2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
