@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Mail, Loader2, Trash2, Pencil, Plug } from "lucide-react";
-import { accountsApi } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Mail,
+  Loader2,
+  Trash2,
+  Pencil,
+  Plug,
+  RefreshCw,
+  Star,
+  KeyRound,
+} from "lucide-react";
+import { accountsApi, mailApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Account, ProviderPreset } from "@/features/accounts/types";
 import { AccountForm } from "@/features/accounts/AccountForm";
@@ -11,12 +22,15 @@ type DialogMode =
   | { kind: "edit"; account: Account };
 
 export function AccountSettings() {
+  const queryClient = useQueryClient();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [presets, setPresets] = useState<ProviderPreset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncingId, setSyncingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogMode>({ kind: "closed" });
   const [testingId, setTestingId] = useState<number | null>(null);
+  const [authorizingId, setAuthorizingId] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<{
     accountId: number;
     ok: boolean;
@@ -32,12 +46,13 @@ export function AccountSettings() {
       setAccounts(list);
       setPresets(presetList);
       setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["accounts"] });
     } catch (e) {
       setError(String(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     void refresh();
@@ -53,6 +68,49 @@ export function AccountSettings() {
       await refresh();
     } catch (e) {
       setError(String(e));
+    }
+  };
+
+  const handleSetDefault = async (account: Account) => {
+    try {
+      await accountsApi.setDefault(account.id);
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const handleSync = async (account: Account) => {
+    setSyncingId(account.id);
+    try {
+      const result = await mailApi.sync(account.id);
+      setTestResult({
+        accountId: account.id,
+        ok: true,
+        message: `同步完成：新增 ${result.new_messages} 封，共 ${result.folders} 个文件夹`,
+      });
+      await refresh();
+      void queryClient.invalidateQueries({ queryKey: ["messages"] });
+      void queryClient.invalidateQueries({ queryKey: ["folders"] });
+    } catch (e) {
+      setTestResult({ accountId: account.id, ok: false, message: String(e) });
+      await refresh();
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const handleAuthorize = async (account: Account) => {
+    setAuthorizingId(account.id);
+    setTestResult(null);
+    try {
+      const result = await accountsApi.oauthAuthorize(account.id);
+      setTestResult({ accountId: account.id, ok: true, message: result.message });
+      await refresh();
+    } catch (e) {
+      setTestResult({ accountId: account.id, ok: false, message: String(e) });
+    } finally {
+      setAuthorizingId(null);
     }
   };
 
@@ -141,6 +199,11 @@ export function AccountSettings() {
                     <span className="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-xs">
                       {account.provider}
                     </span>
+                    {account.is_default && (
+                      <span className="bg-primary text-primary-foreground rounded px-1.5 py-0.5 text-xs">
+                        默认
+                      </span>
+                    )}
                   </div>
                   <p className="text-muted-foreground truncate text-sm">
                     {account.display_name || "—"} · IMAP {account.imap_host}:
@@ -159,6 +222,42 @@ export function AccountSettings() {
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  {!account.is_default && (
+                    <button
+                      onClick={() => void handleSetDefault(account)}
+                      className="border-input bg-background hover:bg-accent inline-flex size-8 items-center justify-center rounded-md border"
+                      aria-label="设为默认账户"
+                      title="设为默认账户"
+                    >
+                      <Star className="size-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => void handleSync(account)}
+                    disabled={syncingId === account.id}
+                    className="border-input bg-background hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm disabled:opacity-50"
+                  >
+                    {syncingId === account.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-3.5" />
+                    )}
+                    同步
+                  </button>
+                  {account.auth_type === "oauth2" && (
+                    <button
+                      onClick={() => void handleAuthorize(account)}
+                      disabled={authorizingId === account.id}
+                      className="border-input bg-background hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm disabled:opacity-50"
+                    >
+                      {authorizingId === account.id ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <KeyRound className="size-3.5" />
+                      )}
+                      授权
+                    </button>
+                  )}
                   <button
                     onClick={() => void handleTest(account)}
                     disabled={testingId === account.id}

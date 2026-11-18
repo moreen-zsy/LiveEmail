@@ -30,6 +30,9 @@ interface FormState {
   smtp_encryption: string;
   auth_type: string;
   secret: string;
+  oauth_client_id: string;
+  oauth_tenant: string;
+  oauth_client_secret: string;
 }
 
 function fromAccount(account: Account): FormState {
@@ -45,6 +48,9 @@ function fromAccount(account: Account): FormState {
     smtp_encryption: account.smtp_encryption,
     auth_type: account.auth_type,
     secret: "",
+    oauth_client_id: account.oauth_client_id ?? "",
+    oauth_tenant: account.oauth_tenant ?? "",
+    oauth_client_secret: account.oauth_client_secret ?? "",
   };
 }
 
@@ -61,6 +67,9 @@ function empty(preset?: ProviderPreset): FormState {
     smtp_encryption: preset?.smtp_encryption ?? "ssl",
     auth_type: preset?.auth_type ?? "password",
     secret: "",
+    oauth_client_id: "",
+    oauth_tenant: "",
+    oauth_client_secret: "",
   };
 }
 
@@ -78,7 +87,8 @@ export function AccountForm({ presets, account, onClose, onSaved }: Props) {
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const preset = presets.find((p) => p.id === form.provider);
-  const needsSecret = form.auth_type !== "oauth2";
+  const isOauth = form.auth_type === "oauth2";
+  const needsSecret = !isOauth;
   const secretHint =
     form.provider === "qq"
       ? "请输入 QQ 邮箱授权码（设置 → 账户 → 开启 IMAP/SMTP → 生成授权码）"
@@ -133,6 +143,9 @@ export function AccountForm({ presets, account, onClose, onSaved }: Props) {
     smtp_encryption: form.smtp_encryption,
     auth_type: form.auth_type,
     secret: form.secret.trim() ? form.secret.trim() : null,
+    oauth_client_id: form.oauth_client_id.trim() || null,
+    oauth_tenant: form.oauth_tenant.trim() || null,
+    oauth_client_secret: form.oauth_client_secret.trim() || null,
   });
 
   const handleTest = async () => {
@@ -141,11 +154,16 @@ export function AccountForm({ presets, account, onClose, onSaved }: Props) {
       setError(invalid);
       return;
     }
+    if (isOauth && !account) {
+      setError("请先保存账户，再在账户列表点击「授权」完成 OAuth2 登录");
+      return;
+    }
     setError(null);
     setTesting(true);
     setTestMsg(null);
     try {
       const result = await accountsApi.testConnection({
+        account_id: account?.id ?? null,
         email: form.email.trim(),
         imap_host: form.imap_host.trim(),
         imap_port: Number(form.imap_port),
@@ -261,6 +279,53 @@ export function AccountForm({ presets, account, onClose, onSaved }: Props) {
                 {account ? "留空则保持已保存的凭据不变。" : secretHint}
               </p>
             </Field>
+          )}
+
+          <Field label="认证方式">
+            <select
+              value={form.auth_type}
+              onChange={(e) => set("auth_type", e.target.value)}
+              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+            >
+              <option value="password">密码 / 授权码</option>
+              <option value="oauth2">OAuth2（Gmail / Outlook）</option>
+            </select>
+          </Field>
+
+          {isOauth && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="OAuth2 Client ID">
+                  <input
+                    value={form.oauth_client_id}
+                    onChange={(e) => set("oauth_client_id", e.target.value)}
+                    placeholder="在服务商控制台创建桌面应用获得"
+                    className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  />
+                </Field>
+                <Field label="Tenant（Outlook 可选）">
+                  <input
+                    value={form.oauth_tenant}
+                    onChange={(e) => set("oauth_tenant", e.target.value)}
+                    placeholder="common / 租户 ID"
+                    className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  />
+                </Field>
+              </div>
+              <Field label="Client Secret（Google 桌面客户端必填）">
+                <input
+                  type="password"
+                  value={form.oauth_client_secret}
+                  onChange={(e) => set("oauth_client_secret", e.target.value)}
+                  autoComplete="off"
+                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                />
+                <p className="text-muted-foreground mt-1 text-xs">
+                  桌面客户端为公开客户端，此值不视为用户机密。保存后在账户列表点击「授权」，
+                  将打开系统浏览器完成登录，令牌写入 Windows 凭据管理器。
+                </p>
+              </Field>
+            </>
           )}
 
           <fieldset className="border-border rounded-md border p-3">
